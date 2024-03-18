@@ -1,26 +1,16 @@
 #include <iostream>
-#include <threads.h>
+#include <thread>
 #include <ncurses.h>
-#include <GL/gl.h>
-#include <GL/glut.h>
+#include <vector>
 
 using namespace std;
 
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBegin(GL_POLYGON);
-    glVertex2f(-0.5, -0.5);
-    glVertex2f(-0.5, 0.5);
-    glVertex2f(0.5, 0.5);
-    glVertex2f(0.5, -0.5);
-    glEnd();
-    glFlush();
-}
 
 int main(int argc, char** argv) {
-    glutInit(&argc, argv);
-    glutCreateWindow("OpenGL Window");
-    glutDisplayFunc(display);
-    glutMainLoop();
+    initscr();
+    printw("Siemano");
+    refresh();
+    getch();
+    endwin();
     return 0;
 }
