@@ -29,9 +29,11 @@ void director(int& direction, bool& shouldClose){
 void screenRefresher(bool& shouldClose, int& direction){
     while (!shouldClose){
         clear();
+        int j = 11;
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
-                //mvprintw(0,0, "%s", "siema");
+                mvprintw(j,0, "name = %s x = %d", it->second.name.c_str(), it->second.position.first);
+                j++;
         }
        
         if (direction == 0){
@@ -53,7 +55,6 @@ void printAll(int direction){
         clear();
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
-                //mvprintw(0,0, "%s", "siema");
         }
        
         if (direction == 0){
@@ -73,11 +74,13 @@ void printAll(int direction){
 void clientThread(Client& client){
     while (true){
         if (client.position.first >= DIRECTOR_X && client.direction == -1){
+            clients.erase(client.id);
             break;
         }
         else{
             //mvprintw(client.position.second, client.position.first, "%s", client.name.c_str());
             client.position.first += client.speed;
+            clients.at(client.id).position = client.position;
         }
         this_thread::sleep_for(chrono::milliseconds(1000));
     }
@@ -121,12 +124,13 @@ int main(int argc, char** argv) {
     int delay = 0;
     Timer timer;
     timer.start();
-
+    int test = 0;
     bool running = true;
     while (running){
         //clear();
         timer.stop();
-        if(timer.mili() > delay * 1000){
+        if(timer.mili() > delay * 1000 && test == 0){
+            test = 1;
             delay = rand() % 10 + 3;
             timer.start();
             Client newClient = createClient();
