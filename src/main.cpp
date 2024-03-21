@@ -15,6 +15,13 @@ int DIRECTOR_Y = 10;
 int DIRECTOR_X = 40;
 int ID = 0;
 
+int STATIONS_X = 70;
+int TOP_STATION_Y = 5;
+int MID_STATION_Y = 10;
+int BOT_STATION_Y = 15;
+
+int direction = 0; // 0 - up, 1 - right, 2 - down
+
 vector<thread> clientThreads;
 map<int, Client> clients;
 
@@ -56,6 +63,10 @@ void printAll(int direction){
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
         }
+
+        mvaddch(TOP_STATION_Y + 1, STATIONS_X, ACS_UARROW);
+        mvaddch(MID_STATION_Y + 1, STATIONS_X, ACS_UARROW);
+        mvaddch(BOT_STATION_Y + 1, STATIONS_X, ACS_UARROW);
        
         if (direction == 0){
             mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_UARROW);
@@ -71,18 +82,70 @@ void printAll(int direction){
 }
 
 
-void clientThread(Client& client){
-    while (true){
-        if (client.position.first >= DIRECTOR_X && client.direction == -1){
+void clientThread(Client& client, bool& shouldClose){
+    while (!shouldClose){
+        if(client.position.first + client.speed >= STATIONS_X){
+            client.position.first = STATIONS_X;
+            clients.at(client.id).position = client.position;
+            this_thread::sleep_for(chrono::seconds(3));
+            client.position.first = STATIONS_X + 1;
+            clients.at(client.id).position = client.position;
+            this_thread::sleep_for(chrono::seconds(1));
             clients.erase(client.id);
             break;
+        }      
+        /*
+         Client sent up
+        */  
+        else if(client.direction == 0){
+            if(client.position.second < TOP_STATION_Y){
+                if(client.position.second - client.speed <= TOP_STATION_Y){
+                    client.position.second = TOP_STATION_Y;
+                }
+                else{
+                    client.position.second -= client.speed;
+                }
+            }
+            else{
+                client.position.first += client.speed;
+            }
         }
-        else{
-            //mvprintw(client.position.second, client.position.first, "%s", client.name.c_str());
+        /*
+         Client sent down
+        */         
+        else if(client.direction == 2){
+            if(client.position.second < BOT_STATION_Y){
+                if(client.position.second + client.speed >= BOT_STATION_Y){
+                    client.position.second = BOT_STATION_Y;
+                }
+                else{
+                    client.position.second += client.speed;
+                }
+            }
+            else{
+                client.position.first += client.speed;
+            }
+        }
+        else if (client.position.first + client.speed >= DIRECTOR_X && client.direction == -1){
+            if (direction == 0){
+                client.position = make_pair(DIRECTOR_X, DIRECTOR_Y - 1);
+                client.direction = 0;
+            }
+            else if (direction == 2){
+                client.position = make_pair(DIRECTOR_X, DIRECTOR_Y + 1);
+                client.direction = 2;
+            }
+            else{
+                client.position = make_pair(DIRECTOR_X + 1, DIRECTOR_Y);
+                client.direction = 1;
+            }
+        }
+        else if((client.position.first + client.speed < DIRECTOR_X && client.direction == -1) || client.direction == 1){
             client.position.first += client.speed;
-            clients.at(client.id).position = client.position;
         }
-        this_thread::sleep_for(chrono::milliseconds(1000));
+
+        clients.at(client.id).position = client.position;
+        this_thread::sleep_for(chrono::seconds(1));
     }
 }
 
@@ -115,7 +178,6 @@ int main(int argc, char** argv) {
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
     resize_term(100, 100);
-    int direction = 0;
     bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
     //thread ref_th(screenRefresher, ref(shouldClose), ref(direction));
@@ -135,7 +197,7 @@ int main(int argc, char** argv) {
             timer.start();
             Client newClient = createClient();
             clients.insert(std::make_pair(ID, newClient));
-            clientThreads.emplace_back(clientThread, ref(newClient));
+            clientThreads.emplace_back(clientThread, ref(newClient), ref(shouldClose));
         }
 
         printAll(direction);
@@ -155,8 +217,15 @@ int main(int argc, char** argv) {
     for(auto& th : clientThreads) {
         if (th.joinable()) {
             cout << "Stopping client thread" << endl;
+
             th.join();
         }
+    }
+
+    for (auto it = clients.begin(); it != clients.end(); ++it){
+        cout << "client pos = " << it->second.position.first << " " << it->second.position.second << endl;
+        cout << "client dir = " << it->second.direction << " client speed = " << it->second.speed << endl;
+        cout << it->first << " " << it->second.id << endl;
     }
 
     cout << "Threads stopped successfully" << endl;
