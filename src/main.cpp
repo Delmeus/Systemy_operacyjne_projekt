@@ -21,6 +21,7 @@ int MID_STATION_Y = 10;
 int BOT_STATION_Y = 15;
 
 int direction = 0; // 0 - up, 1 - right, 2 - down
+int clientAmount = 0;
 
 vector<thread> clientThreads;
 map<int, Client> clients;
@@ -161,6 +162,7 @@ void clientThread(Client& client, bool& shouldClose){
         clients.at(client.id).position = client.position;
         this_thread::sleep_for(chrono::seconds(1));
     }
+    clientAmount = 0;
 }
 
 int MAX_ID = 100;
@@ -204,8 +206,8 @@ int main(int argc, char** argv) {
     bool running = true;
     while (running){
         timer.stop();
-        if(timer.mili() > delay * 1000 && test == 0){
-            test = 1;
+        if(timer.mili() > delay * 1000 && clientAmount == 0){
+            clientAmount = 1;
             delay = rand() % 10 + 3;
             timer.start();
             Client newClient = createClient();
