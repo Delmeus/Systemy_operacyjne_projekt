@@ -33,36 +33,44 @@ void director(int& direction, bool& shouldClose){
     
 }
 
-void screenRefresher(bool& shouldClose, int& direction){
-    while (!shouldClose){
-        clear();
-        int j = 11;
-        for (auto it = clients.begin(); it != clients.end(); ++it){
-                mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
-                mvprintw(j,0, "name = %s x = %d", it->second.name.c_str(), it->second.position.first);
-                j++;
-        }
-       
-        if (direction == 0){
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_UARROW);
-        }
-        else if (direction == 1){
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_RARROW);
-        }   
-        else{
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_DARROW);
-        }
-
-        refresh();
-        this_thread::sleep_for(chrono::milliseconds(100));
-    }
-}
-
-void printAll(int direction){
+void printAll(){
         clear();
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
         }
+
+        for (int i = 0; i < DIRECTOR_X; i++){
+            mvprintw(DIRECTOR_Y - 1, i, "%s", "-");
+            mvprintw(DIRECTOR_Y + 1, i, "%s", "-");
+        }
+
+        for (int i = TOP_STATION_Y - 1; i <= BOT_STATION_Y + 1; i++){
+            if(!(i >= DIRECTOR_Y - 1 && i <= DIRECTOR_Y + 1)){
+                mvprintw(i, DIRECTOR_X - 1, "%s", "|");
+            }
+        }
+
+        for (int i = TOP_STATION_Y + 1; i <= BOT_STATION_Y - 1; i++){
+            if(!(i >= DIRECTOR_Y - 1 && i <= DIRECTOR_Y + 1)){
+                mvprintw(i, DIRECTOR_X + 1, "%s", "|");
+            }
+        }
+
+        for (int i = DIRECTOR_X + 1; i <= STATIONS_X; i++){
+            mvprintw(TOP_STATION_Y - 1, i, "%s", "-");
+            mvprintw(TOP_STATION_Y + 1, i, "%s", "-");
+            mvprintw(MID_STATION_Y - 1, i, "%s", "-");
+            mvprintw(MID_STATION_Y + 1, i, "%s", "-");
+            mvprintw(BOT_STATION_Y - 1, i, "%s", "-");
+            mvprintw(BOT_STATION_Y + 1, i, "%s", "-");
+        }
+
+        mvprintw(TOP_STATION_Y - 1, DIRECTOR_X, "%s", "-");
+        mvprintw(BOT_STATION_Y + 1, DIRECTOR_X, "%s", "-");
+
+        mvaddch(TOP_STATION_Y - 1, STATIONS_X, ACS_DARROW);
+        mvaddch(MID_STATION_Y - 1, STATIONS_X, ACS_DARROW);
+        mvaddch(BOT_STATION_Y - 1, STATIONS_X, ACS_DARROW);
 
         mvaddch(TOP_STATION_Y + 1, STATIONS_X, ACS_UARROW);
         mvaddch(MID_STATION_Y + 1, STATIONS_X, ACS_UARROW);
@@ -81,6 +89,12 @@ void printAll(int direction){
         refresh();
 }
 
+// void screenRefresher(bool& shouldClose){
+//     while (!shouldClose){
+//         printAll();
+//         this_thread::sleep_for(chrono::milliseconds(300));
+//     }
+// }
 
 void clientThread(Client& client, bool& shouldClose){
     while (!shouldClose){
@@ -180,7 +194,7 @@ int main(int argc, char** argv) {
     resize_term(100, 100);
     bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
-    //thread ref_th(screenRefresher, ref(shouldClose), ref(direction));
+    //thread ref_th(screenRefresher, ref(shouldClose));
 
     srand(time(nullptr));
     int delay = 0;
@@ -189,7 +203,6 @@ int main(int argc, char** argv) {
     int test = 0;
     bool running = true;
     while (running){
-        //clear();
         timer.stop();
         if(timer.mili() > delay * 1000 && test == 0){
             test = 1;
@@ -200,13 +213,14 @@ int main(int argc, char** argv) {
             clientThreads.emplace_back(clientThread, ref(newClient), ref(shouldClose));
         }
 
-        printAll(direction);
+        printAll();
 
         int ch = getch();
         if (ch == ' ') {
             running = false;
             shouldClose = true;
         }
+        this_thread::sleep_for(chrono::milliseconds(100));
     }
     //ref_th.join();
     endwin();
