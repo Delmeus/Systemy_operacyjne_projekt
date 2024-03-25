@@ -36,10 +36,13 @@ void director(int& direction, bool& shouldClose){
 
 void printAll(){
         clear();
+        mvprintw(0, 0, "%s", "Antoni Toczynski");
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
         }
-
+        /*
+            Printing corridors
+        */
         for (int i = 0; i < DIRECTOR_X; i++){
             mvprintw(DIRECTOR_Y - 1, i, "%s", "-");
             mvprintw(DIRECTOR_Y + 1, i, "%s", "-");
@@ -90,13 +93,8 @@ void printAll(){
         refresh();
 }
 
-// void screenRefresher(bool& shouldClose){
-//     while (!shouldClose){
-//         printAll();
-//         this_thread::sleep_for(chrono::milliseconds(300));
-//     }
-// }
-
+//// TODO : change how speed works, instead of moving client by speed
+////        move client by one but make him sleep for diferent durations
 void clientThread(Client& client, bool& shouldClose){
     while (!shouldClose){
         if(client.position.first + client.speed >= STATIONS_X){
@@ -113,7 +111,7 @@ void clientThread(Client& client, bool& shouldClose){
          Client sent up
         */  
         else if(client.direction == 0){
-            if(client.position.second < TOP_STATION_Y){
+            if(client.position.second > TOP_STATION_Y){
                 if(client.position.second - client.speed <= TOP_STATION_Y){
                     client.position.second = TOP_STATION_Y;
                 }
@@ -160,7 +158,7 @@ void clientThread(Client& client, bool& shouldClose){
         }
 
         clients.at(client.id).position = client.position;
-        this_thread::sleep_for(chrono::seconds(1));
+        this_thread::sleep_for(chrono::milliseconds(300));
     }
     clientAmount = 0;
 }
