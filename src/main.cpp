@@ -5,7 +5,6 @@
 #include <Client.h>
 #include <Timer.h>
 #include <chrono>
-#include <atomic>
 #include <random>
 #include <map>
 
@@ -93,11 +92,11 @@ void printAll(){
         refresh();
 }
 
-//// TODO : change how speed works, instead of moving client by speed
-////        move client by one but make him sleep for diferent durations
+
 void clientThread(Client& client, bool& shouldClose){
+    int speed = 1;
     while (!shouldClose){
-        if(client.position.first + client.speed >= STATIONS_X){
+        if(client.position.first + speed >= STATIONS_X){
             client.position.first = STATIONS_X;
             clients.at(client.id).position = client.position;
             this_thread::sleep_for(chrono::seconds(3));
@@ -112,15 +111,15 @@ void clientThread(Client& client, bool& shouldClose){
         */  
         else if(client.direction == 0){
             if(client.position.second > TOP_STATION_Y){
-                if(client.position.second - client.speed <= TOP_STATION_Y){
+                if(client.position.second - speed <= TOP_STATION_Y){
                     client.position.second = TOP_STATION_Y;
                 }
                 else{
-                    client.position.second -= client.speed;
+                    client.position.second -= speed;
                 }
             }
             else{
-                client.position.first += client.speed;
+                client.position.first += speed;
             }
         }
         /*
@@ -128,18 +127,18 @@ void clientThread(Client& client, bool& shouldClose){
         */         
         else if(client.direction == 2){
             if(client.position.second < BOT_STATION_Y){
-                if(client.position.second + client.speed >= BOT_STATION_Y){
+                if(client.position.second + speed >= BOT_STATION_Y){
                     client.position.second = BOT_STATION_Y;
                 }
                 else{
-                    client.position.second += client.speed;
+                    client.position.second += speed;
                 }
             }
             else{
-                client.position.first += client.speed;
+                client.position.first += speed;
             }
         }
-        else if (client.position.first + client.speed >= DIRECTOR_X && client.direction == -1){
+        else if (client.position.first + speed >= DIRECTOR_X && client.direction == -1){
             if (direction == 0){
                 client.position = make_pair(DIRECTOR_X, DIRECTOR_Y - 1);
                 client.direction = 0;
@@ -153,12 +152,12 @@ void clientThread(Client& client, bool& shouldClose){
                 client.direction = 1;
             }
         }
-        else if((client.position.first + client.speed < DIRECTOR_X && client.direction == -1) || client.direction == 1){
-            client.position.first += client.speed;
+        else if((client.position.first + speed < DIRECTOR_X && client.direction == -1) || client.direction == 1){
+            client.position.first += speed;
         }
 
         clients.at(client.id).position = client.position;
-        this_thread::sleep_for(chrono::milliseconds(300));
+        this_thread::sleep_for(chrono::milliseconds(200 + 300 % client.speed));
     }
     clientAmount = 0;
 }
@@ -194,7 +193,6 @@ int main(int argc, char** argv) {
     resize_term(100, 100);
     bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
-    //thread ref_th(screenRefresher, ref(shouldClose));
 
     srand(time(nullptr));
     int delay = 0;
@@ -222,7 +220,6 @@ int main(int argc, char** argv) {
         }
         this_thread::sleep_for(chrono::milliseconds(100));
     }
-    //ref_th.join();
     endwin();
     cout << "Stopping threads" << endl;
     dir_th.join();
