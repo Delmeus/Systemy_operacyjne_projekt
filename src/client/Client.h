@@ -3,18 +3,22 @@
 
 #include <utility>
 #include <string>
+#include <vector>
 
 class Client {
 public:
 
-    Client(std::string n, int speed, int id);
+    bool operator==(const Client& other) const {
+        return name == other.name && position == other.position; 
+    }
 
-public:
+    Client(std::string n, int speed);
     std::string name;
     std::pair<int, int> position;
     int speed;
     int direction = -1;
-    int id;
+    int getIndex(std::vector<Client>& clients) const;
+
 };
 
 #endif // CLIENT_H

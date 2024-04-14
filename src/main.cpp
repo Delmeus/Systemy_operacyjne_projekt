@@ -6,13 +6,13 @@
 #include <Timer.h>
 #include <chrono>
 #include <random>
-#include <map>
+#include <list>
 
 using namespace std;
 
 int DIRECTOR_Y = 10;
 int DIRECTOR_X = 40;
-int ID = 0;
+
 
 int STATIONS_X = 70;
 int TOP_STATION_Y = 5;
@@ -20,10 +20,10 @@ int MID_STATION_Y = 10;
 int BOT_STATION_Y = 15;
 
 int direction = 0; // 0 - up, 1 - right, 2 - down
-int clientAmount = 0;
+//int clientAmount = 0;
 
 vector<thread> clientThreads;
-map<int, Client> clients;
+vector<Client> clients;
 
 void director(int& direction, bool& shouldClose){
     while (!shouldClose){
@@ -37,7 +37,7 @@ void printAll(){
         clear();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
         for (auto it = clients.begin(); it != clients.end(); ++it){
-                mvprintw(it->second.position.second, it->second.position.first, "%s", it->second.name.c_str());
+                mvprintw(it->position.second, it->position.first, "%s", it->name.c_str());
         }
         /*
             Printing corridors
@@ -93,17 +93,18 @@ void printAll(){
 }
 
 
-void clientThread(Client& client, bool& shouldClose){
+void clientThread(Client client, int index, bool& shouldClose){
     int speed = 1;
+    //int index = client.getIndex(clients);
     while (!shouldClose){
         if(client.position.first + speed >= STATIONS_X){
             client.position.first = STATIONS_X;
-            clients.at(client.id).position = client.position;
+            clients.at(index).position = client.position;
             this_thread::sleep_for(chrono::seconds(3));
             client.position.first = STATIONS_X + 1;
-            clients.at(client.id).position = client.position;
+            clients.at(index).position = client.position;
             this_thread::sleep_for(chrono::seconds(1));
-            clients.erase(client.id);
+            //clients.erase(next(clients.begin(), index));
             break;
         }      
         /*
@@ -156,10 +157,11 @@ void clientThread(Client& client, bool& shouldClose){
             client.position.first += speed;
         }
 
-        clients.at(client.id).position = client.position;
+        clients.at(index).position = client.position;
+        clients.at(index).direction = client.direction;
         this_thread::sleep_for(chrono::milliseconds(200 + 300 % client.speed));
     }
-    clientAmount = 0;
+    //clientAmount = 0;
 }
 
 int MAX_ID = 100;
@@ -175,10 +177,7 @@ Client createClient(){
     srand(time(nullptr));
     int speed = rand() % 3 + 1;
     string s(1, name);
-    ID++;
-    if(ID > MAX_ID)
-        ID = 0;
-    return Client(s, speed, ID);
+    return Client(s, speed);
 }
 
 
@@ -194,23 +193,24 @@ int main(int argc, char** argv) {
     bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
 
-    srand(time(nullptr));
+    //srand(time(nullptr));
     int delay = 0;
+    int i = 0;
     Timer timer;
     timer.start();
     int test = 0;
-    bool running = true;
+    volatile bool running = true;
     while (running){
         timer.stop();
-        if(timer.mili() > delay * 1000 && clientAmount == 0){
-            clientAmount = 1;
-            delay = rand() % 10 + 3;
+        if(timer.mili() > delay * 1000){ // && clientAmount == 0
+            //clientAmount = 1;
+            delay = rand() % 5 + 3;
             timer.start();
             Client newClient = createClient();
-            clients.insert(std::make_pair(ID, newClient));
-            clientThreads.emplace_back(clientThread, ref(newClient), ref(shouldClose));
+            clients.push_back(newClient);
+            clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
+            i++;
         }
-
         printAll();
 
         int ch = getch();
@@ -221,6 +221,7 @@ int main(int argc, char** argv) {
         this_thread::sleep_for(chrono::milliseconds(100));
     }
     endwin();
+    
     cout << "Stopping threads" << endl;
     dir_th.join();
 
@@ -228,15 +229,13 @@ int main(int argc, char** argv) {
     for(auto& th : clientThreads) {
         if (th.joinable()) {
             cout << "Stopping client thread" << endl;
-
             th.join();
         }
     }
 
-    for (auto it = clients.begin(); it != clients.end(); ++it){
-        cout << "client pos = " << it->second.position.first << " " << it->second.position.second << endl;
-        cout << "client dir = " << it->second.direction << " client speed = " << it->second.speed << endl;
-        cout << it->first << " " << it->second.id << endl;
+       for (auto it = clients.begin(); it != clients.end(); ++it){
+        cout << "client pos = " << it->position.first << " " << it->position.second << endl;
+        cout << "client dir = " << it->direction << " client speed = " << it->speed << endl;
     }
 
     cout << "Threads stopped successfully" << endl;
