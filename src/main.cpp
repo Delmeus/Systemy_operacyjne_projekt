@@ -164,7 +164,22 @@ void clientThread(Client client, int index, bool& shouldClose){
     //clientAmount = 0;
 }
 
-int MAX_ID = 100;
+void generatorThread(bool& shouldClose){
+    srand(time(nullptr));
+    int delay = 0;
+    int i = 0;
+    while(!shouldClose){
+        delay = rand() % 5 + 3;
+        char name = static_cast<char>(rand() % 25 + 65);
+        int speed = rand() % 3 + 1;
+        string s(1, name);
+        this_thread::sleep_for(chrono::seconds(delay));
+        Client newClient(s, speed);
+        clients.push_back(newClient);
+        clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
+        i++;
+    }
+}
 
 Client createClient(){
     random_device rd;
@@ -192,25 +207,25 @@ int main(int argc, char** argv) {
     resize_term(100, 100);
     bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
-
+    thread generator(generatorThread, ref(shouldClose));
     //srand(time(nullptr));
     int delay = 0;
-    int i = 0;
-    Timer timer;
-    timer.start();
+    // int i = 0;
+    // Timer timer;
+    // timer.start();
     int test = 0;
     volatile bool running = true;
     while (running){
-        timer.stop();
-        if(timer.mili() > delay * 1000){ // && clientAmount == 0
-            //clientAmount = 1;
-            delay = rand() % 5 + 3;
-            timer.start();
-            Client newClient = createClient();
-            clients.push_back(newClient);
-            clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
-            i++;
-        }
+        // timer.stop();
+        // if(timer.mili() > delay * 1000){ // && clientAmount == 0
+        //     //clientAmount = 1;
+        //     delay = rand() % 5 + 3;
+        //     timer.start();
+        //     Client newClient = createClient();
+        //     clients.push_back(newClient);
+        //     clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
+        //     i++;
+        // }
         printAll();
 
         int ch = getch();
@@ -224,7 +239,7 @@ int main(int argc, char** argv) {
     
     cout << "Stopping threads" << endl;
     dir_th.join();
-
+    generator.join();
     cout << "Number of client threads = " << clientThreads.size() << endl;
     for(auto& th : clientThreads) {
         if (th.joinable()) {
