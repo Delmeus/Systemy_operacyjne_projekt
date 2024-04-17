@@ -4,20 +4,43 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <thread>
+
+using namespace std;
 
 class Client {
-public:
+private:
+    // 0 - director x
+    // 1 - director y
+    // 2 - all stations x
+    // 3 - top station y
+    // 4 - bot station y
+    int stationCoordinates[5];
+    bool shouldClose;
+    int speed;
+    int direction = -1;
+    thread clientThread;
+public: 
 
     bool operator==(const Client& other) const {
         return name == other.name && position == other.position; 
     }
 
-    Client(std::string n, int speed);
-    std::string name;
-    std::pair<int, int> position;
-    int speed;
-    int direction = -1;
-    int getIndex(std::vector<Client>& clients) const;
+    bool completed(){
+        if(direction == -2)
+            return true;
+        return false;
+    }
+
+    Client(string n, int speed, int& distributorDirection, const int coordinates[5]);
+    string name;
+    
+    pair<int, int> position;
+
+    int getIndex(const vector<Client*>& clients) const;
+
+    void move(int& distributorDirection);
+    void close();
 
 };
 

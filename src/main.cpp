@@ -6,8 +6,7 @@
 #include <Timer.h>
 #include <chrono>
 #include <random>
-#include <list>
-
+#include <mutex>
 using namespace std;
 
 int DIRECTOR_Y = 10;
@@ -19,11 +18,16 @@ int TOP_STATION_Y = 5;
 int MID_STATION_Y = 10;
 int BOT_STATION_Y = 15;
 
+//int cords[5] = {DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
+
 int direction = 0; // 0 - up, 1 - right, 2 - down
 //int clientAmount = 0;
+int MAX_SPEED = 5;
+mutex clientsMutex;
+//mutex clientThreadsMutex;
 
-vector<thread> clientThreads;
-vector<Client> clients;
+//vector<thread> clientThreads;
+vector<Client*> clients;
 
 void director(int& direction, bool& shouldClose){
     while (!shouldClose){
@@ -34,10 +38,11 @@ void director(int& direction, bool& shouldClose){
 }
 
 void printAll(){
-        clear();
+        //clear();
+        erase();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
         for (auto it = clients.begin(); it != clients.end(); ++it){
-                mvprintw(it->position.second, it->position.first, "%s", it->name.c_str());
+                mvprintw((*it)->position.second, (*it)->position.first, "%s", (*it)->name.c_str());
         }
         /*
             Printing corridors
@@ -91,25 +96,60 @@ void printAll(){
 
         refresh();
 }
-
-
-void clientThread(Client client, int index, bool& shouldClose){
+/*
+//del indexc
+void clientThread(Client client, int indexc, bool& shouldClose){
     int speed = 1;
+    // clientsMutex.lock();
+    // int index = client.getIndex(clients);
+    // if (index==-1)
+    // {
+    //     mvprintw(1, 1, "%s", "GOWNO");
+    // }
+    
+    // clientsMutex.unlock();
+
     //int index = client.getIndex(clients);
     while (!shouldClose){
+        clientsMutex.lock();
+        int index = client.getIndex(clients);
+        if (index==-1)
+        {
+            mvprintw(1, 1, "%s", "GOWNO");
+        }
+        
+        clientsMutex.unlock();
         if(client.position.first + speed >= STATIONS_X){
             client.position.first = STATIONS_X;
+
+            //clientsMutex.lock();
+            //index = client.getIndex(clients);
+            //if(index != -1)
             clients.at(index).position = client.position;
+            //clientsMutex.unlock();
+
             this_thread::sleep_for(chrono::seconds(3));
+
+            //clientsMutex.lock();
+            // index = client.getIndex(clients);
+            // if(index != -1)
             client.position.first = STATIONS_X + 1;
             clients.at(index).position = client.position;
+            //clientsMutex.unlock();
+
             this_thread::sleep_for(chrono::seconds(1));
-            //clients.erase(next(clients.begin(), index));
+
+            //clientsMutex.lock();
+            // index = client.getIndex(clients);
+            // if(index != -1)
+            clients.at(index).direction = -2;
+            //clientsMutex.unlock();
+            //MAJOR PROBLEM
+            // clients.erase(next(clients.begin(), index));
+            // clientThreads.at(index).join();
+            // clientThreads.erase(next(clientThreads.begin(), index));
             break;
         }      
-        /*
-         Client sent up
-        */  
         else if(client.direction == 0){
             if(client.position.second > TOP_STATION_Y){
                 if(client.position.second - speed <= TOP_STATION_Y){
@@ -122,10 +162,7 @@ void clientThread(Client client, int index, bool& shouldClose){
             else{
                 client.position.first += speed;
             }
-        }
-        /*
-         Client sent down
-        */         
+        }       
         else if(client.direction == 2){
             if(client.position.second < BOT_STATION_Y){
                 if(client.position.second + speed >= BOT_STATION_Y){
@@ -156,44 +193,85 @@ void clientThread(Client client, int index, bool& shouldClose){
         else if((client.position.first + speed < DIRECTOR_X && client.direction == -1) || client.direction == 1){
             client.position.first += speed;
         }
-
+        //clientsMutex.lock();
+        // index = client.getIndex(clients);
+        // if(index != -1){
         clients.at(index).position = client.position;
         clients.at(index).direction = client.direction;
-        this_thread::sleep_for(chrono::milliseconds(200 + 300 % client.speed));
+        //}
+        //clientsMutex.unlock();
+        this_thread::sleep_for(chrono::milliseconds(500/client.speed));
     }
     //clientAmount = 0;
+}
+*/
+void deleteClients(){
+    clientsMutex.lock();
+    for(auto it = clients.begin(); it != clients.end(); ++it){
+        if((*it)->completed()){
+            int index = (*it)->getIndex(clients);
+            (*it)->close();
+            //clients.at(index).close();
+            clients.erase(next(clients.begin(), index));
+            //break;
+        }
+    }
+    clientsMutex.unlock();
 }
 
 void generatorThread(bool& shouldClose){
     srand(time(nullptr));
     int delay = 0;
-    int i = 0;
+
+    Timer timer;
+    timer.start();
+
+    int* cords = new int[5]{DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
+
     while(!shouldClose){
-        delay = rand() % 5 + 3;
-        char name = static_cast<char>(rand() % 25 + 65);
-        int speed = rand() % 3 + 1;
-        string s(1, name);
-        this_thread::sleep_for(chrono::seconds(delay));
-        Client newClient(s, speed);
-        clients.push_back(newClient);
-        clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
-        i++;
+        timer.stop();
+        if(timer.mili() > delay * 1000){
+            timer.start();
+            delay = rand() % 3 + 2;
+            char name = static_cast<char>(rand() % 25 + 65);
+            int speed = rand() % MAX_SPEED + 1;
+            string s(1, name);
+            // Client newClient(s, speed, ref(direction), cords);
+            // clients.push_back(newClient);
+            // clientThreads.emplace_back(clientThread, newClient, i, ref(shouldClose));
+
+            //Client newClient(s, speed);
+            //clientsMutex.lock();
+            // clients.push_back(newClient);
+            //clientsMutex.unlock();
+            //clientThreads.emplace_back(clientThread, newClient, 0, ref(shouldClose));
+            //clients.push_back(std::move(Client(s, speed, ref(direction), cords)));
+
+            Client* newClient = new Client(s, speed, ref(direction), cords);
+            clients.push_back(newClient);
+            
+        }
+        deleteClients();
+        this_thread::sleep_for(chrono::microseconds(50));
+        //this_thread::sleep_for(chrono::seconds(delay));
     }
+
+    delete cords;
 }
 
-Client createClient(){
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<> dis(65, 90);
+// Client createClient(){
+//     random_device rd;
+//     mt19937 gen(rd());
+//     uniform_int_distribution<> dis(65, 90);
     
-    int randomNumber = dis(gen);
+//     int randomNumber = dis(gen);
 
-    char name = static_cast<char>(randomNumber);
-    srand(time(nullptr));
-    int speed = rand() % 3 + 1;
-    string s(1, name);
-    return Client(s, speed);
-}
+//     char name = static_cast<char>(randomNumber);
+//     srand(time(nullptr));
+//     int speed = rand() % 3 + 1;
+//     string s(1, name);
+//     return Client(s, speed);
+// }
 
 
 int main(int argc, char** argv) {
@@ -227,7 +305,7 @@ int main(int argc, char** argv) {
         //     i++;
         // }
         printAll();
-
+        //deleteClients();
         int ch = getch();
         if (ch == ' ') {
             running = false;
@@ -239,20 +317,29 @@ int main(int argc, char** argv) {
     
     cout << "Stopping threads" << endl;
     dir_th.join();
+    cout << "Distributor thread finished" << endl;
     generator.join();
-    cout << "Number of client threads = " << clientThreads.size() << endl;
-    for(auto& th : clientThreads) {
-        if (th.joinable()) {
-            cout << "Stopping client thread" << endl;
-            th.join();
-        }
+    cout << "Generator thread finished" << endl;
+    //cout << "Number of client threads = " << clientThreads.size() << endl;
+    // for(auto& th : clientThreads) {
+    //     if (th.joinable()) {
+    //         cout << "Stopping client thread" << endl;
+    //         th.join();
+    //     }
+    // }
+
+    // for (auto it = clients.begin(); it != clients.end(); ++it){
+    //     cout << "client pos = " << it->position.first << " " << it->position.second << endl;
+    //     cout << "client dir = " << it->direction << " client speed = " << it->speed << endl;
+    // }
+
+    for (auto it = clients.begin(); it != clients.end(); ++it){
+        (*it)->close();
     }
 
-       for (auto it = clients.begin(); it != clients.end(); ++it){
-        cout << "client pos = " << it->position.first << " " << it->position.second << endl;
-        cout << "client dir = " << it->direction << " client speed = " << it->speed << endl;
+    for (auto it = clients.begin(); it != clients.end(); ++it) {
+        delete *it; // Free memory
     }
-
     cout << "Threads stopped successfully" << endl;
 
     return 0;
