@@ -9,19 +9,9 @@ Client::Client(string n, int speed, int& distributorDirection, const int coordin
     this->speed = speed;
     shouldClose = false;
     copy(coordinates, coordinates + 5, stationCoordinates);
-    //clientThread = std::thread([this, &distributorDirection](){move(distributorDirection);}); //uwaga na to
     clientThread = thread(&Client::move, this, ref(distributorDirection));
 
 }
-
-// int Client::getIndex(vector<Client>& clients) const {
-//     auto it = find(clients.begin(), clients.end(), *this);
-//     if (it != clients.end())  { 
-//         int index = it - clients.begin(); 
-//         return index;
-//     } 
-//     return -1;
-// }
 
 int Client::getIndex(const vector<Client*>& clients) const {
     auto it = find_if(clients.begin(), clients.end(), [&](const Client* client) {
@@ -36,8 +26,6 @@ int Client::getIndex(const vector<Client*>& clients) const {
 void Client::move(int& distributorDirection){
     //int speed = 1;
     while (!shouldClose){
-        // mvprintw(1, 1, "%d", position.first);
-        // refresh();
         if(position.first + 1 >= stationCoordinates[2]){
             position.first = stationCoordinates[2];
             this_thread::sleep_for(chrono::seconds(3));
@@ -105,5 +93,4 @@ void Client::move(int& distributorDirection){
 void Client::close(){
     shouldClose = true;
     clientThread.join();
-    //cout << "thread finished, pos = (" << position.first << "," << position.second << ") " << completed() << endl; 
 }
