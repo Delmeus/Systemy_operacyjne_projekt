@@ -7,6 +7,7 @@
 #include <chrono>
 #include <random>
 #include <mutex>
+
 using namespace std;
 
 int DIRECTOR_Y = 10;
@@ -96,7 +97,6 @@ void deleteClients(){
             int index = (*it)->getIndex(clients);
             (*it)->close();
             clients.erase(next(clients.begin(), index));
-            //break;
         }
     }
 }

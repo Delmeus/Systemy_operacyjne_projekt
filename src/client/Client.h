@@ -33,8 +33,8 @@ public:
     }
 
     Client(string n, int speed, int& distributorDirection, const int coordinates[5]);
-    string name;
     
+    string name;
     pair<int, int> position;
 
     int getIndex(const vector<Client*>& clients) const;

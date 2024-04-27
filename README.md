@@ -16,5 +16,7 @@ To visualize behaviour of clients and distributor I used the _ncurses_ library. 
 
 ### Stage 2
 
+Clients cannot pass each other on their way from distributor to service station. Additionaly, when station is occupied, they cannot enter, forming a group in cell before it.
+
 ### Stage 3
 

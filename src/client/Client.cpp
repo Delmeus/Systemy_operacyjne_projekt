@@ -3,6 +3,7 @@
 #include <thread>
 #include <iostream>
 #include <ncurses.h>
+
 Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5]){
     name = n;
     position = make_pair(0, 10);
@@ -24,7 +25,6 @@ int Client::getIndex(const vector<Client*>& clients) const {
 }
 
 void Client::move(int& distributorDirection){
-    //int speed = 1;
     while (!shouldClose){
         if(position.first + 1 >= stationCoordinates[2]){
             position.first = stationCoordinates[2];
