@@ -4,13 +4,13 @@
 #include <iostream>
 #include <ncurses.h>
 
-Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5]){
+Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex){
     name = n;
     position = make_pair(0, 10);
     this->speed = speed;
     shouldClose = false;
     copy(coordinates, coordinates + 5, stationCoordinates);
-    clientThread = thread(&Client::move, this, ref(distributorDirection));
+    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex));
 
 }
 
@@ -24,8 +24,9 @@ int Client::getIndex(const vector<Client*>& clients) const {
     return -1;
 }
 
-void Client::move(int& distributorDirection){
+void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex){
     while (!shouldClose){
+        pair<int, int> nextPosition = position;
         if(position.first + 1 >= stationCoordinates[2]){
             position.first = stationCoordinates[2];
             this_thread::sleep_for(chrono::seconds(3));
@@ -35,58 +36,66 @@ void Client::move(int& distributorDirection){
             break;
         }      
         /*
-         Client sent up
+        Client sent up
         */  
         else if(direction == 0){
             if(position.second > stationCoordinates[3]){
                 if(position.second - 1 <= stationCoordinates[3]){
-                    position.second = stationCoordinates[3];
+                    nextPosition.second = stationCoordinates[3];
                 }
                 else{
-                    position.second -= 1;
+                    nextPosition.second -= 1;
                 }
             }
             else{
-                position.first += 1;
+                nextPosition.first += 1;
             }
         }
         /*
-         Client sent down
+        Client sent down
         */         
         else if(direction == 2){
             if(position.second < stationCoordinates[4]){
                 if(position.second + 1 >= stationCoordinates[4]){
-                    position.second = stationCoordinates[4];
+                    nextPosition.second = stationCoordinates[4];
                 }
                 else{
-                    position.second += 1;
+                    nextPosition.second += 1;
                 }
             }
             else{
-                position.first += 1;
+                nextPosition.first += 1;
             }
         }
         else if (position.first + 1 >= stationCoordinates[0] && direction == -1){
             if (distributorDirection == 0){
-                position = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
+                nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
                 direction = 0;
             }
             else if (distributorDirection == 2){
-                position = make_pair(stationCoordinates[0], stationCoordinates[1] + 1);
+                nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] + 1);
                 direction = 2;
             }
             else{
-                position = make_pair(stationCoordinates[0] + 1, stationCoordinates[1]);
+                nextPosition = make_pair(stationCoordinates[0] + 1, stationCoordinates[1]);
                 direction = 1;
             }
         }
         else if((position.first + 1 < stationCoordinates[0] && direction == -1) || direction == 1){
-            position.first += 1;
+            nextPosition.first += 1;
         }
         else{
-            position.first += 1;
+            nextPosition.first += 1;
         }
+
+        mutex.lock();
+        canMove(nextPosition, clients, mutex);
+        // if(canMove(nextPosition, clients, mutex)){
+        //     position = nextPosition;
+        // }
+        mutex.unlock();
         this_thread::sleep_for(chrono::milliseconds(500/speed));
+        
     }
 }
 

@@ -22,6 +22,7 @@ int direction = 0; // 0 - up, 1 - right, 2 - down
 
 int MAX_SPEED = 5;
 
+mutex clientMutex;
 vector<Client*> clients;
 
 void director(int& direction, volatile bool& shouldClose){
@@ -35,9 +36,11 @@ void director(int& direction, volatile bool& shouldClose){
 void printAll(){
         erase();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
+        //clientMutex.lock();
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw((*it)->position.second, (*it)->position.first, "%s", (*it)->name.c_str());
         }
+        //clientMutex.unlock();
         /*
             Printing corridors
         */
@@ -119,10 +122,14 @@ void managerThread(volatile bool& shouldClose){
             int speed = rand() % MAX_SPEED + 1;
             string s(1, name);
             
-            Client* newClient = new Client(s, speed, ref(direction), cords);
+            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex);
+            clientMutex.lock();
             clients.push_back(newClient);
+            clientMutex.unlock();
         }
+        clientMutex.lock();
         deleteClients();
+        clientMutex.unlock();
         this_thread::sleep_for(chrono::microseconds(50));
     }
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 
 using namespace std;
 
@@ -20,6 +21,28 @@ private:
     int speed;
     int direction = -1;
     thread clientThread;
+
+    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, mutex& clientsMutex){
+        if(direction == -1){
+            position = nextPosition;
+            return true;
+        }
+
+        //clientsMutex.lock();
+        for(auto it = clients.begin(); it != clients.end(); ++it){
+            if((*it) == this){
+                continue;
+            }
+            if((*it)->position == nextPosition){
+                //clientsMutex.unlock();
+                return false;
+            }
+        }
+        //clientsMutex.unlock();
+        position = nextPosition;
+        return true;
+    }
+
 public: 
 
     bool operator==(const Client& other) const {
@@ -32,14 +55,14 @@ public:
         return false;
     }
 
-    Client(string n, int speed, int& distributorDirection, const int coordinates[5]);
+    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex);
     
     string name;
     pair<int, int> position;
 
     int getIndex(const vector<Client*>& clients) const;
 
-    void move(int& distributorDirection);
+    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex);
     void close();
 
 };
