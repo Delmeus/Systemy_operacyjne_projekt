@@ -36,11 +36,9 @@ void director(int& direction, volatile bool& shouldClose){
 void printAll(){
         erase();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
-        //clientMutex.lock();
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 mvprintw((*it)->position.second, (*it)->position.first, "%s", (*it)->name.c_str());
         }
-        //clientMutex.unlock();
         /*
             Printing corridors
         */
@@ -117,7 +115,7 @@ void managerThread(volatile bool& shouldClose){
         timer.stop();
         if(timer.mili() > delay * 1000){
             timer.start();
-            delay = rand() % 3 + 2;
+            delay = rand() % 1 + 2; // % 3 + 2
             char name = static_cast<char>(rand() % 25 + 65);
             int speed = rand() % MAX_SPEED + 1;
             string s(1, name);

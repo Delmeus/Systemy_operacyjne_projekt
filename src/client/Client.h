@@ -22,24 +22,21 @@ private:
     int direction = -1;
     thread clientThread;
 
-    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, mutex& clientsMutex){
-        if(direction == -1){
-            position = nextPosition;
+    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients){
+        if(direction == -1 || nextPosition.first == stationCoordinates[2] - 1){
             return true;
         }
 
-        //clientsMutex.lock();
         for(auto it = clients.begin(); it != clients.end(); ++it){
             if((*it) == this){
                 continue;
             }
             if((*it)->position == nextPosition){
-                //clientsMutex.unlock();
+                //speed = (*it)->speed;
                 return false;
             }
         }
-        //clientsMutex.unlock();
-        position = nextPosition;
+        
         return true;
     }
 
