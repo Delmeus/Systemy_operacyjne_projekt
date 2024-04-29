@@ -32,7 +32,6 @@ private:
                 continue;
             }
             if((*it)->position == nextPosition){
-                //speed = (*it)->speed;
                 return false;
             }
         }

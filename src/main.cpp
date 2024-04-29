@@ -30,7 +30,6 @@ void director(int& direction, volatile bool& shouldClose){
         direction = (direction + 1) % 3;
         this_thread::sleep_for(chrono::seconds(4));
     }
-    
 }
 
 void printAll(){
@@ -115,20 +114,23 @@ void managerThread(volatile bool& shouldClose){
         timer.stop();
         if(timer.mili() > delay * 1000){
             timer.start();
-            delay = rand() % 1 + 2; // % 3 + 2
+            delay = rand() % 3 + 2; 
             char name = static_cast<char>(rand() % 25 + 65);
             int speed = rand() % MAX_SPEED + 1;
             string s(1, name);
             
             Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex);
+
             clientMutex.lock();
             clients.push_back(newClient);
             clientMutex.unlock();
         }
+
         clientMutex.lock();
         deleteClients();
         clientMutex.unlock();
         this_thread::sleep_for(chrono::microseconds(50));
+
     }
 
     delete cords;
@@ -170,6 +172,7 @@ int main(int argc, char** argv) {
     for (auto it = clients.begin(); it != clients.end(); ++it) {
         delete *it; 
     }
+
     cout << "Threads stopped successfully" << endl;
 
     return 0;

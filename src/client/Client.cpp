@@ -25,9 +25,8 @@ int Client::getIndex(const vector<Client*>& clients) const {
 }
 
 void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex){
-    int prevSpeed = speed;
+    int nextDirection = direction;
     while (!shouldClose){
-        //speed = prevSpeed;
         pair<int, int> nextPosition = position;
         if(position.first + 1 >= stationCoordinates[2]){
             nextPosition.first = stationCoordinates[2];
@@ -37,6 +36,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
                 mutex.unlock();
                 position = nextPosition;
                 this_thread::sleep_for(chrono::seconds(3));
+
                 position.first = stationCoordinates[2] + 1;
                 this_thread::sleep_for(chrono::seconds(1));
                 direction = -2;
@@ -79,40 +79,32 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
         else if (position.first + 1 >= stationCoordinates[0] && direction == -1){
             if (distributorDirection == 0){
                 nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
-                direction = 0;
+                nextDirection = 0;
             }
             else if (distributorDirection == 2){
                 nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] + 1);
-                direction = 2;
+                nextDirection = 2;
             }
             else{
                 nextPosition = make_pair(stationCoordinates[0] + 1, stationCoordinates[1]);
-                direction = 1;
+                nextDirection = 1;
             }
         }
-        // else if((position.first + 1 < stationCoordinates[0] && direction == -1) || direction == 1){
-        //     nextPosition.first += 1;
-        // }
         else{
             nextPosition.first += 1;
         }
+
         mutex.lock();
-        bool movable = canMove(nextPosition, clients);
-        mutex.unlock();
-        if(movable){
+        if(canMove(nextPosition, clients)){
             position = nextPosition;
+            direction = nextDirection;
+            mutex.unlock();
             this_thread::sleep_for(chrono::milliseconds(500/speed));
         }
         else{
+            mutex.unlock();
             this_thread::sleep_for(chrono::milliseconds(100));
         }
-        // mutex.lock();
-        // if(canMove(nextPosition, clients)){
-        //     position = nextPosition;
-        // }
-        // mutex.unlock();
-        // this_thread::sleep_for(chrono::milliseconds(500/speed));
-        
     }
 }
 
