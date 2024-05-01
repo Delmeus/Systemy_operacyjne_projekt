@@ -22,8 +22,8 @@ private:
     int direction = -1;
     thread clientThread;
 
-    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients){
-        if(direction == -1 || nextPosition.first == stationCoordinates[2] - 1){
+    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& occupancy){
+        if(direction == -1){ //|| nextPosition.first == stationCoordinates[2] - 1){
             return true;
         }
 
@@ -32,6 +32,9 @@ private:
                 continue;
             }
             if((*it)->position == nextPosition){
+                if(nextPosition.first == stationCoordinates[2] - 1 && occupancy[direction] == true){
+                    return true;
+                }
                 return false;
             }
         }
@@ -51,14 +54,14 @@ public:
         return false;
     }
 
-    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex);
+    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy);
     
     string name;
     pair<int, int> position;
 
     int getIndex(const vector<Client*>& clients) const;
 
-    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex);
+    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy);
     void close();
 
 };

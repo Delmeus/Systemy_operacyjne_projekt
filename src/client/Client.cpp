@@ -4,13 +4,13 @@
 #include <iostream>
 #include <ncurses.h>
 
-Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex){
+Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy){
     name = n;
     position = make_pair(0, 10);
     this->speed = speed;
     shouldClose = false;
     copy(coordinates, coordinates + 5, stationCoordinates);
-    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex));
+    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex), ref(occupancy));
 
 }
 
@@ -24,7 +24,7 @@ int Client::getIndex(const vector<Client*>& clients) const {
     return -1;
 }
 
-void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex){
+void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy){
     int nextDirection = direction;
     while (!shouldClose){
         pair<int, int> nextPosition = position;
@@ -32,12 +32,16 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             nextPosition.first = stationCoordinates[2];
 
             mutex.lock();
-            if(canMove(nextPosition, clients)){
-                mutex.unlock();
+            if(canMove(nextPosition, clients, occupancy)){
                 position = nextPosition;
+                occupancy[direction] = true;
+                mutex.unlock();
                 this_thread::sleep_for(chrono::seconds(3));
 
+                mutex.lock();
                 position.first = stationCoordinates[2] + 1;
+                occupancy[direction] = false;
+                mutex.unlock();
                 this_thread::sleep_for(chrono::seconds(1));
                 direction = -2;
                 break;
@@ -95,7 +99,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
         }
 
         mutex.lock();
-        if(canMove(nextPosition, clients)){
+        if(canMove(nextPosition, clients, occupancy)){
             position = nextPosition;
             direction = nextDirection;
             mutex.unlock();

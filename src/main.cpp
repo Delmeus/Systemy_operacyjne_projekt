@@ -25,6 +25,8 @@ int MAX_SPEED = 5;
 mutex clientMutex;
 vector<Client*> clients;
 
+vector<bool> occupancy(3, false);
+
 void director(int& direction, volatile bool& shouldClose){
     while (!shouldClose){
         direction = (direction + 1) % 3;
@@ -119,7 +121,7 @@ void managerThread(volatile bool& shouldClose){
             int speed = rand() % MAX_SPEED + 1;
             string s(1, name);
             
-            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex);
+            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy);
 
             clientMutex.lock();
             clients.push_back(newClient);
@@ -145,6 +147,7 @@ int main(int argc, char** argv) {
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
     resize_term(100, 100);
+
     volatile bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
     thread manager(managerThread, ref(shouldClose));
