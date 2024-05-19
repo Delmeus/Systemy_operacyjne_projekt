@@ -6,7 +6,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
-
+#include <condition_variable>
 using namespace std;
 
 class Client {
@@ -17,13 +17,13 @@ private:
     // 3 - top station y
     // 4 - bot station y
     int stationCoordinates[5];
-    bool shouldClose;
+    volatile bool shouldClose;
     int speed;
     int direction = -1;
     thread clientThread;
 
     bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& occupancy){
-        if(direction == -1){ //|| nextPosition.first == stationCoordinates[2] - 1){
+        if(direction == -1){
             return true;
         }
 
@@ -54,15 +54,15 @@ public:
         return false;
     }
 
-    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy);
+    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
     
     string name;
     pair<int, int> position;
 
     int getIndex(const vector<Client*>& clients) const;
 
-    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy);
-    void close();
+    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
+    void close(condition_variable& condition);
 
 };
 

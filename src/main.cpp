@@ -7,7 +7,8 @@
 #include <chrono>
 #include <random>
 #include <mutex>
-
+#include <condition_variable>
+#include <algorithm>
 using namespace std;
 
 int DIRECTOR_Y = 10;
@@ -26,6 +27,7 @@ mutex clientMutex;
 vector<Client*> clients;
 
 vector<bool> occupancy(3, false);
+condition_variable condition;
 
 void director(int& direction, volatile bool& shouldClose){
     while (!shouldClose){
@@ -94,12 +96,34 @@ void printAll(){
 }
 
 void deleteClients(){
-    for(auto it = clients.begin(); it != clients.end(); ++it){
-        if((*it)->completed()){
-            int index = (*it)->getIndex(clients);
-            (*it)->close();
-            clients.erase(next(clients.begin(), index));
+    // unique_lock<mutex> lock(clientMutex);
+    // for(auto it = clients.begin(); it != clients.end(); ++it){
+    //     if((*it)->completed()){
+    //         int index = (*it)->getIndex(clients);
+    //         (*it)->close(condition);
+    //         clients.erase(next(clients.begin(), index));
+    //     }
+    // }
+    vector<Client*> toDelete;
+    {
+        
+        for (auto it = clients.begin(); it != clients.end(); ++it) {
+            if ((*it)->completed()) {
+                toDelete.push_back(*it);
+            }
         }
+
+        for (auto client : toDelete) {
+            client->close(condition);
+        }
+        unique_lock<mutex> lock(clientMutex);
+        clients.erase(remove_if(clients.begin(), clients.end(), [&](Client* client) {
+            return find(toDelete.begin(), toDelete.end(), client) != toDelete.end();
+        }), clients.end());
+    }
+
+    for (auto client : toDelete) {
+        delete client;
     }
 }
 
@@ -116,21 +140,19 @@ void managerThread(volatile bool& shouldClose){
         timer.stop();
         if(timer.mili() > delay * 1000){
             timer.start();
-            delay = rand() % 3 + 2; 
+            delay = rand() % 1 + 2;  // 3 + 2
             char name = static_cast<char>(rand() % 25 + 65);
             int speed = rand() % MAX_SPEED + 1;
             string s(1, name);
             
-            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy);
+            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy, condition);
 
             clientMutex.lock();
             clients.push_back(newClient);
             clientMutex.unlock();
         }
 
-        clientMutex.lock();
         deleteClients();
-        clientMutex.unlock();
         this_thread::sleep_for(chrono::microseconds(50));
 
     }
@@ -156,6 +178,7 @@ int main(int argc, char** argv) {
         printAll();
         int ch = getch();
         if (ch == ' ') {
+            condition.notify_all();
             shouldClose = true;
         }
         this_thread::sleep_for(chrono::milliseconds(100));
@@ -169,7 +192,7 @@ int main(int argc, char** argv) {
     cout << "Manager thread finished" << endl;
 
     for (auto it = clients.begin(); it != clients.end(); ++it){
-        (*it)->close();
+        (*it)->close(condition);
     }
 
     for (auto it = clients.begin(); it != clients.end(); ++it) {

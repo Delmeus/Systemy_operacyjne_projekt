@@ -4,13 +4,13 @@
 #include <iostream>
 #include <ncurses.h>
 
-Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy){
+Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition){
     name = n;
     position = make_pair(0, 10);
     this->speed = speed;
     shouldClose = false;
     copy(coordinates, coordinates + 5, stationCoordinates);
-    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex), ref(occupancy));
+    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex), ref(occupancy), ref(condition));
 
 }
 
@@ -24,29 +24,38 @@ int Client::getIndex(const vector<Client*>& clients) const {
     return -1;
 }
 
-void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy){
+void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition){
     int nextDirection = direction;
     while (!shouldClose){
         pair<int, int> nextPosition = position;
         if(position.first + 1 >= stationCoordinates[2]){
             nextPosition.first = stationCoordinates[2];
 
-            mutex.lock();
-            if(canMove(nextPosition, clients, occupancy)){
-                position = nextPosition;
-                occupancy[direction] = true;
-                mutex.unlock();
-                this_thread::sleep_for(chrono::seconds(3));
-
-                mutex.lock();
-                position.first = stationCoordinates[2] + 1;
-                occupancy[direction] = false;
-                mutex.unlock();
-                this_thread::sleep_for(chrono::seconds(1));
-                direction = -2;
-                break;
+            unique_lock<std::mutex> lock(mutex);
+            if (!canMove(nextPosition, clients, occupancy)) {
+                condition.wait(lock,  [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; }); 
             }
-            mutex.unlock();
+
+            if(shouldClose) break;
+
+            position = nextPosition;
+            occupancy[direction] = true;
+            lock.unlock();
+            condition.notify_all();
+
+            this_thread::sleep_for(chrono::seconds(3));
+            
+            condition.notify_all();
+            lock.lock();
+            position.first = stationCoordinates[2] + 1;
+            occupancy[direction] = false;
+            direction = -2;
+            lock.unlock();
+            condition.notify_all(); 
+
+            this_thread::sleep_for(chrono::seconds(1));
+            break;
+  
         }      
         /*
         Client sent up
@@ -97,22 +106,25 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
         else{
             nextPosition.first += 1;
         }
+ 
+        unique_lock<std::mutex> lock(mutex);
+        if(!canMove(nextPosition, clients, occupancy)){
+            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
+        }
 
-        mutex.lock();
-        if(canMove(nextPosition, clients, occupancy)){
-            position = nextPosition;
-            direction = nextDirection;
-            mutex.unlock();
-            this_thread::sleep_for(chrono::milliseconds(500/speed));
-        }
-        else{
-            mutex.unlock();
-            this_thread::sleep_for(chrono::milliseconds(100));
-        }
+        if(shouldClose) break;
+        
+        position = nextPosition;
+        direction = nextDirection;
+        lock.unlock();
+        condition.notify_all(); 
+        this_thread::sleep_for(chrono::milliseconds(500/speed));
+        
     }
 }
 
-void Client::close(){
+void Client::close(condition_variable& condition){
     shouldClose = true;
+    condition.notify_all();
     clientThread.join();
 }
