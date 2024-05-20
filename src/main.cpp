@@ -95,7 +95,7 @@ void printAll(){
         refresh();
 }
 
-void deleteClients(){
+void deleteClients(volatile bool& shouldClose){
     // unique_lock<mutex> lock(clientMutex);
     // for(auto it = clients.begin(); it != clients.end(); ++it){
     //     if((*it)->completed()){
@@ -104,6 +104,7 @@ void deleteClients(){
     //         clients.erase(next(clients.begin(), index));
     //     }
     // }
+    /*
     vector<Client*> toDelete;
     {
         
@@ -124,6 +125,38 @@ void deleteClients(){
 
     for (auto client : toDelete) {
         delete client;
+    }*/
+    while(!shouldClose){
+        vector<Client*> toDelete;
+        
+        unique_lock<mutex> lock(clientMutex);
+
+        condition.wait(lock, [&]() {
+            for (auto it = clients.begin(); it != clients.end(); ++it) {
+                if ((*it)->completed()) {
+                    toDelete.push_back(*it);
+                }
+            }
+            return !toDelete.empty() || shouldClose;
+        });
+        lock.unlock();
+
+        if(shouldClose) break;
+
+        for (auto client : toDelete) {
+            client->close(condition);
+            delete client;
+        }
+
+        lock.lock();
+        clients.erase(remove_if(clients.begin(), clients.end(), [&](Client* client) {
+            return find(toDelete.begin(), toDelete.end(), client) != toDelete.end();
+        }), clients.end());
+        lock.unlock();
+
+        // for (auto client : toDelete) {
+        //     delete client;
+        // }
     }
 }
 
@@ -131,29 +164,28 @@ void managerThread(volatile bool& shouldClose){
     srand(time(nullptr));
     int delay = 0;
 
-    Timer timer;
-    timer.start();
+    // Timer timer;
+    // timer.start();
 
     int* cords = new int[5]{DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
 
     while(!shouldClose){
-        timer.stop();
-        if(timer.mili() > delay * 1000){
-            timer.start();
-            delay = rand() % 1 + 2;  // 3 + 2
-            char name = static_cast<char>(rand() % 25 + 65);
-            int speed = rand() % MAX_SPEED + 1;
-            string s(1, name);
-            
-            Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy, condition);
+        //timer.stop();
+        //if(timer.mili() > delay * 1000){
+        //timer.start();
+        delay = rand() % 1 + 2;  // 3 + 2
+        char name = static_cast<char>(rand() % 25 + 65);
+        int speed = rand() % MAX_SPEED + 1;
+        string s(1, name);
+        
+        Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy, condition);
 
-            clientMutex.lock();
-            clients.push_back(newClient);
-            clientMutex.unlock();
-        }
-
-        deleteClients();
-        this_thread::sleep_for(chrono::microseconds(50));
+        unique_lock<mutex> lock(clientMutex);
+        clients.push_back(newClient);
+        lock.unlock();
+        //}
+        //deleteClients();
+        this_thread::sleep_for(chrono::seconds(delay));
 
     }
 
@@ -173,6 +205,7 @@ int main(int argc, char** argv) {
     volatile bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
     thread manager(managerThread, ref(shouldClose));
+    thread janitor(deleteClients, ref(shouldClose));
 
     while (!shouldClose){
         printAll();
@@ -190,6 +223,8 @@ int main(int argc, char** argv) {
     cout << "Distributor thread finished" << endl;
     manager.join();
     cout << "Manager thread finished" << endl;
+    janitor.join();
+    cout << "Janitor thread finished" << endl;
 
     for (auto it = clients.begin(); it != clients.end(); ++it){
         (*it)->close(condition);
