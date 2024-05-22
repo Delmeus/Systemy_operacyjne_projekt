@@ -14,20 +14,13 @@ Client::Client(string n, int speed, int& distributorDirection, const int coordin
 
 }
 
-int Client::getIndex(const vector<Client*>& clients) const {
-    auto it = find_if(clients.begin(), clients.end(), [&](const Client* client) {
-        return *client == *this;
-    });
-    if (it != clients.end()) {
-        return distance(clients.begin(), it);
-    }
-    return -1;
-}
-
 void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition){
     int nextDirection = direction;
     while (!shouldClose){
         pair<int, int> nextPosition = position;
+        /*
+        Client reached station
+        */
         if(position.first + 1 >= stationCoordinates[2]){
             nextPosition.first = stationCoordinates[2];
 
@@ -89,6 +82,9 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
                 nextPosition.first += 1;
             }
         }
+        /*
+        Client reached the distributor
+        */
         else if (position.first + 1 >= stationCoordinates[0] && direction == -1){
             if (distributorDirection == 0){
                 nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
@@ -103,6 +99,9 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
                 nextDirection = 1;
             }
         }
+        /*
+        Client sent forwards or hasn't reached the distributor yet
+        */
         else{
             nextPosition.first += 1;
         }
@@ -126,5 +125,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
 void Client::close(condition_variable& condition){
     shouldClose = true;
     condition.notify_all();
-    clientThread.join();
+    if(clientThread.joinable()){
+        clientThread.join();
+    }
 }

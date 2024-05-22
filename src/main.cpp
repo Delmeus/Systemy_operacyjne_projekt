@@ -95,36 +95,33 @@ void printAll(){
         refresh();
 }
 
-void deleteClients(volatile bool& shouldClose){
-    // unique_lock<mutex> lock(clientMutex);
-    // for(auto it = clients.begin(); it != clients.end(); ++it){
-    //     if((*it)->completed()){
-    //         int index = (*it)->getIndex(clients);
-    //         (*it)->close(condition);
-    //         clients.erase(next(clients.begin(), index));
-    //     }
-    // }
-    /*
-    vector<Client*> toDelete;
-    {
-        
-        for (auto it = clients.begin(); it != clients.end(); ++it) {
+void janitorThread(volatile bool& shouldClose){
+    /*while (!shouldClose) {
+        unique_lock<mutex> lock(clientMutex);
+
+        condition.wait(lock, [&]() {
+            for (auto client : clients) {
+                if (client->completed()) {
+                    return true;
+                }
+            }
+            return shouldClose;
+        });
+
+        if (shouldClose) break;
+        lock.unlock();
+        auto it = clients.begin();
+        while (it != clients.end()) {
             if ((*it)->completed()) {
-                toDelete.push_back(*it);
+                (*it)->close(condition);
+                delete *it;
+                lock.lock();
+                it = clients.erase(it);
+                lock.unlock();
+            } else {
+                ++it;
             }
         }
-
-        for (auto client : toDelete) {
-            client->close(condition);
-        }
-        unique_lock<mutex> lock(clientMutex);
-        clients.erase(remove_if(clients.begin(), clients.end(), [&](Client* client) {
-            return find(toDelete.begin(), toDelete.end(), client) != toDelete.end();
-        }), clients.end());
-    }
-
-    for (auto client : toDelete) {
-        delete client;
     }*/
     while(!shouldClose){
         vector<Client*> toDelete;
@@ -164,16 +161,10 @@ void managerThread(volatile bool& shouldClose){
     srand(time(nullptr));
     int delay = 0;
 
-    // Timer timer;
-    // timer.start();
-
     int* cords = new int[5]{DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
 
     while(!shouldClose){
-        //timer.stop();
-        //if(timer.mili() > delay * 1000){
-        //timer.start();
-        delay = rand() % 1 + 2;  // 3 + 2
+        delay = rand() % 1 + 2; 
         char name = static_cast<char>(rand() % 25 + 65);
         int speed = rand() % MAX_SPEED + 1;
         string s(1, name);
@@ -183,8 +174,6 @@ void managerThread(volatile bool& shouldClose){
         unique_lock<mutex> lock(clientMutex);
         clients.push_back(newClient);
         lock.unlock();
-        //}
-        //deleteClients();
         this_thread::sleep_for(chrono::seconds(delay));
 
     }
@@ -205,7 +194,7 @@ int main(int argc, char** argv) {
     volatile bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
     thread manager(managerThread, ref(shouldClose));
-    thread janitor(deleteClients, ref(shouldClose));
+    thread janitor(janitorThread, ref(shouldClose));
 
     while (!shouldClose){
         printAll();

@@ -59,8 +59,6 @@ public:
     string name;
     pair<int, int> position;
 
-    int getIndex(const vector<Client*>& clients) const;
-
     void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
     void close(condition_variable& condition);
 
