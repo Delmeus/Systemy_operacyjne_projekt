@@ -105,18 +105,28 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
         else{
             nextPosition.first += 1;
         }
- 
-        unique_lock<std::mutex> lock(mutex);
-        if(!canMove(nextPosition, clients, occupancy)){
-            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
+
+        if(nextDirection != -1){
+            unique_lock<std::mutex> lock(mutex);
+            if(!canMove(nextPosition, clients, occupancy)){
+                condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
+            }
+
+            if(shouldClose) break;
+            
+            position = nextPosition;
+            direction = nextDirection;
+            lock.unlock();
+            condition.notify_all(); 
+        }
+        /*
+         Skip locking when client is and will be still allowed to overtake in their next move
+        */
+        else{
+            position = nextPosition;
+            direction = nextDirection;
         }
 
-        if(shouldClose) break;
-        
-        position = nextPosition;
-        direction = nextDirection;
-        lock.unlock();
-        condition.notify_all(); 
         this_thread::sleep_for(chrono::milliseconds(500/speed));
         
     }
