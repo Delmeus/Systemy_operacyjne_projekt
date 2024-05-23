@@ -21,7 +21,7 @@ int BOT_STATION_Y = 15;
 
 int direction = 0; // 0 - up, 1 - right, 2 - down
 
-int MAX_SPEED = 5;
+int MAX_SPEED = 7;
 
 mutex clientMutex;
 vector<Client*> clients;
@@ -149,11 +149,6 @@ void janitorThread(volatile bool& shouldClose){
         clients.erase(remove_if(clients.begin(), clients.end(), [&](Client* client) {
             return find(toDelete.begin(), toDelete.end(), client) != toDelete.end();
         }), clients.end());
-        lock.unlock();
-
-        // for (auto client : toDelete) {
-        //     delete client;
-        // }
     }
 }
 
@@ -178,7 +173,7 @@ void managerThread(volatile bool& shouldClose){
 
     }
 
-    delete cords;
+    delete[] cords;
 }
 
 int main(int argc, char** argv) {
@@ -217,11 +212,12 @@ int main(int argc, char** argv) {
 
     for (auto it = clients.begin(); it != clients.end(); ++it){
         (*it)->close(condition);
+        delete *it;
     }
 
-    for (auto it = clients.begin(); it != clients.end(); ++it) {
-        delete *it; 
-    }
+    // for (auto it = clients.begin(); it != clients.end(); ++it) {
+    //     delete *it; 
+    // }
 
     cout << "Threads stopped successfully" << endl;
 
