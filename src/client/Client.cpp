@@ -48,40 +48,17 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             shouldClose = true;
         }      
         /*
-        Client sent up
+        Client sent up, has not reached desired height
         */  
-        else if(direction == 0){
-            if(position.second > stationCoordinates[3]){
-                if(position.second - 1 <= stationCoordinates[3]){
-                    nextPosition.second = stationCoordinates[3];
-                }
-                else{
-                    nextPosition.second -= 1;
-                }
-            }
-            else{
-                nextPosition.first += 1;
-            }
+        else if(direction == 0 && position.second > stationCoordinates[3]){
+            nextPosition.second -= 1;
         }
         /*
-        Client sent down
+        Client sent down, has not reached desired height
         */         
-        else if(direction == 2){
-            if(position.second < stationCoordinates[4]){
-                if(position.second + 1 >= stationCoordinates[4]){
-                    nextPosition.second = stationCoordinates[4];
-                }
-                else{
-                    nextPosition.second += 1;
-                }
-            }
-            else{
-                nextPosition.first += 1;
-            }
+        else if(direction == 2 && position.second < stationCoordinates[4]){
+            nextPosition.second += 1;
         }
-        /*
-        Client sent forwards or hasn't received direction yet
-        */
         else{
             nextPosition.first += 1;
         }
@@ -99,15 +76,15 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             position.first = stationCoordinates[0];
             
             if (distributorDirection == 0){
-                nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
+                nextPosition.second -= 1;
                 nextDirection = 0;
             }
             else if (distributorDirection == 2){
-                nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] + 1);
+                nextPosition.second += 1;
                 nextDirection = 2;
             }
             else{
-                nextPosition = make_pair(stationCoordinates[0] + 1, stationCoordinates[1]);
+                nextPosition.first += 1;
                 nextDirection = 1;
             }
 
