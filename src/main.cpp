@@ -41,6 +41,9 @@ void printAll(){
         erase();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
         int color;
+        /*
+        Printing legend
+        */
         mvprintw(15, 0, "%s", "Speed:");
         for(int i = 1; i < 8; i++){
             mvprintw(15 + i, 0, "%s", "-");
@@ -49,6 +52,9 @@ void printAll(){
             mvprintw(15 + i, 2, "%d", i);
             attroff(COLOR_PAIR(color));
         }
+        /*
+        Printing clients
+        */
         for (auto it = clients.begin(); it != clients.end(); ++it){
                 color = 2 + (*it)->getSpeed();
                 attron(COLOR_PAIR(color));
@@ -86,7 +92,9 @@ void printAll(){
 
         mvprintw(TOP_STATION_Y - 1, DIRECTOR_X, "%s", "-");
         mvprintw(BOT_STATION_Y + 1, DIRECTOR_X, "%s", "-");
-
+        /*
+        Printing stations
+        */
         if(occupancy[0]) color = 2;
         else color = 1;
         attron(COLOR_PAIR(color));
