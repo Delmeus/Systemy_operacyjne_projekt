@@ -28,6 +28,7 @@ vector<Client*> clients;
 
 vector<bool> occupancy(3, false);
 condition_variable condition;
+bool distributorTaken = false;
 
 void director(int& direction, volatile bool& shouldClose){
     while (!shouldClose){
@@ -39,8 +40,20 @@ void director(int& direction, volatile bool& shouldClose){
 void printAll(){
         erase();
         mvprintw(0, 0, "%s", "Antoni Toczynski");
+        int color;
+        mvprintw(15, 0, "%s", "Speed:");
+        for(int i = 1; i < 8; i++){
+            mvprintw(15 + i, 0, "%s", "-");
+            color = 2 + i;
+            attron(COLOR_PAIR(color));
+            mvprintw(15 + i, 2, "%d", i);
+            attroff(COLOR_PAIR(color));
+        }
         for (auto it = clients.begin(); it != clients.end(); ++it){
+                color = 2 + (*it)->getSpeed();
+                attron(COLOR_PAIR(color));
                 mvprintw((*it)->position.second, (*it)->position.first, "%s", (*it)->name.c_str());
+                attroff(COLOR_PAIR(color));
         }
         /*
             Printing corridors
@@ -74,14 +87,36 @@ void printAll(){
         mvprintw(TOP_STATION_Y - 1, DIRECTOR_X, "%s", "-");
         mvprintw(BOT_STATION_Y + 1, DIRECTOR_X, "%s", "-");
 
+        if(occupancy[0]) color = 2;
+        else color = 1;
+        attron(COLOR_PAIR(color));
         mvaddch(TOP_STATION_Y - 1, STATIONS_X, ACS_DARROW);
-        mvaddch(MID_STATION_Y - 1, STATIONS_X, ACS_DARROW);
-        mvaddch(BOT_STATION_Y - 1, STATIONS_X, ACS_DARROW);
-
         mvaddch(TOP_STATION_Y + 1, STATIONS_X, ACS_UARROW);
+        attroff(COLOR_PAIR(color));
+
+        if(occupancy[1]) color = 2;
+        else color = 1;
+        attron(COLOR_PAIR(color));
+        mvaddch(MID_STATION_Y - 1, STATIONS_X, ACS_DARROW);
         mvaddch(MID_STATION_Y + 1, STATIONS_X, ACS_UARROW);
+        attroff(COLOR_PAIR(color));
+
+        if(occupancy[2]) color = 2;
+        else color = 1;
+        attron(COLOR_PAIR(color));
+        mvaddch(BOT_STATION_Y - 1, STATIONS_X, ACS_DARROW);
         mvaddch(BOT_STATION_Y + 1, STATIONS_X, ACS_UARROW);
-       
+        attroff(COLOR_PAIR(color));
+        /*
+        Printing distributor
+        */
+        if(distributorTaken){
+            color = 2;
+        }
+        else{
+            color = 1;
+        }
+        attron(COLOR_PAIR(color));
         if (direction == 0){
             mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_UARROW);
         }
@@ -91,7 +126,7 @@ void printAll(){
         else{
             mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_DARROW);
         }
-
+        attroff(COLOR_PAIR(color));
         refresh();
 }
 
@@ -158,6 +193,23 @@ int main(int argc, char** argv) {
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
     resize_term(100, 100);
+
+    start_color();
+    /*
+    Distributor colors
+    */
+    init_pair(1, COLOR_BLACK, COLOR_GREEN); 
+    init_pair(2, COLOR_BLACK, COLOR_RED);
+    /*
+    Client colors
+    */
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
+    init_pair(4, COLOR_CYAN, COLOR_BLACK);
+    init_pair(5, COLOR_GREEN, COLOR_BLACK);
+    init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(7, COLOR_RED, COLOR_BLACK);
+    init_pair(8, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(9, COLOR_WHITE, COLOR_BLACK);
 
     volatile bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));
