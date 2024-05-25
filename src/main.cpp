@@ -3,7 +3,6 @@
 #include <ncurses.h>
 #include <vector>
 #include <Client.h>
-#include <Timer.h>
 #include <chrono>
 #include <random>
 #include <mutex>
