@@ -175,7 +175,7 @@ void managerThread(volatile bool& shouldClose){
     int* cords = new int[5]{DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
 
     while(!shouldClose){
-        delay = rand() % 1 + 2; 
+        delay = rand() % 2 + 1; 
         char name = static_cast<char>(rand() % 25 + 65);
         int speed = rand() % MAX_SPEED + 1;
         string s(1, name);
