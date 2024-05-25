@@ -25,9 +25,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             nextPosition.first = stationCoordinates[2];
 
             unique_lock<std::mutex> lock(mutex);
-            if (!canMove(nextPosition, clients, occupancy)) {
-                condition.wait(lock,  [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; }); 
-            }
+            condition.wait(lock,  [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; }); 
 
             if(shouldClose) break;
 
@@ -47,8 +45,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             condition.notify_all(); 
 
             this_thread::sleep_for(chrono::seconds(1));
-            break;
-  
+            shouldClose = true;
         }      
         /*
         Client sent up
@@ -108,15 +105,14 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
 
         if(nextDirection != -1){
             unique_lock<std::mutex> lock(mutex);
-            if(!canMove(nextPosition, clients, occupancy)){
-                condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
-            }
+            
+            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
 
             if(shouldClose) break;
             
             position = nextPosition;
             direction = nextDirection;
-            lock.unlock();
+            
             condition.notify_all(); 
         }
         /*

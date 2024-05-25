@@ -96,33 +96,6 @@ void printAll(){
 }
 
 void janitorThread(volatile bool& shouldClose){
-    /*while (!shouldClose) {
-        unique_lock<mutex> lock(clientMutex);
-
-        condition.wait(lock, [&]() {
-            for (auto client : clients) {
-                if (client->completed()) {
-                    return true;
-                }
-            }
-            return shouldClose;
-        });
-
-        if (shouldClose) break;
-        lock.unlock();
-        auto it = clients.begin();
-        while (it != clients.end()) {
-            if ((*it)->completed()) {
-                (*it)->close(condition);
-                delete *it;
-                lock.lock();
-                it = clients.erase(it);
-                lock.unlock();
-            } else {
-                ++it;
-            }
-        }
-    }*/
     while(!shouldClose){
         vector<Client*> toDelete;
         
@@ -198,7 +171,7 @@ int main(int argc, char** argv) {
             condition.notify_all();
             shouldClose = true;
         }
-        this_thread::sleep_for(chrono::milliseconds(100));
+        this_thread::sleep_for(chrono::milliseconds(10));
     }
     endwin();
     
@@ -214,10 +187,6 @@ int main(int argc, char** argv) {
         (*it)->close(condition);
         delete *it;
     }
-
-    // for (auto it = clients.begin(); it != clients.end(); ++it) {
-    //     delete *it; 
-    // }
 
     cout << "Threads stopped successfully" << endl;
 
