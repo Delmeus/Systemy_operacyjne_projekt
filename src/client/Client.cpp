@@ -96,7 +96,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             if(shouldClose) break;
             
             distributorTaken = true;
-            position.first = DIRECTOR_X;
+            position.first = stationCoordinates[0];
             
             if (distributorDirection == 0){
                 nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);

@@ -11,8 +11,8 @@
 #include <algorithm>
 using namespace std;
 
-int DIRECTOR_Y = 10;
-int DIRECTOR_X = 40;
+int DISTRIBUTOR_Y = 10;
+int DISTRIBUTOR_X = 40;
 
 int STATIONS_X = 70;
 int TOP_STATION_Y = 5;
@@ -64,24 +64,25 @@ void printAll(){
         /*
             Printing corridors
         */
-        for (int i = 0; i < DIRECTOR_X; i++){
-            mvprintw(DIRECTOR_Y - 1, i, "%s", "-");
-            mvprintw(DIRECTOR_Y + 1, i, "%s", "-");
+        attron(COLOR_PAIR(10));
+        for (int i = 0; i < DISTRIBUTOR_X; i++){
+            mvprintw(DISTRIBUTOR_Y - 1, i, "%s", "-");
+            mvprintw(DISTRIBUTOR_Y + 1, i, "%s", "-");
         }
 
-        for (int i = TOP_STATION_Y; i <= BOT_STATION_Y; i++){
-            if(!(i >= DIRECTOR_Y - 1 && i <= DIRECTOR_Y + 1)){
-                mvprintw(i, DIRECTOR_X - 1, "%s", "|");
+        for (int i = TOP_STATION_Y - 1; i <= BOT_STATION_Y + 1; i++){
+            if(!(i >= DISTRIBUTOR_Y - 1 && i <= DISTRIBUTOR_Y + 1)){
+                mvprintw(i, DISTRIBUTOR_X - 1, "%s", "|");
             }
         }
 
         for (int i = TOP_STATION_Y + 1; i <= BOT_STATION_Y - 1; i++){
-            if(!(i >= DIRECTOR_Y - 1 && i <= DIRECTOR_Y + 1)){
-                mvprintw(i, DIRECTOR_X + 1, "%s", "|");
+            if(!(i >= DISTRIBUTOR_Y - 1 && i <= DISTRIBUTOR_Y + 1)){
+                mvprintw(i, DISTRIBUTOR_X + 1, "%s", "|");
             }
         }
 
-        for (int i = DIRECTOR_X + 1; i <= STATIONS_X; i++){
+        for (int i = DISTRIBUTOR_X + 1; i <= STATIONS_X; i++){
             mvprintw(TOP_STATION_Y - 1, i, "%s", "-");
             mvprintw(TOP_STATION_Y + 1, i, "%s", "-");
             mvprintw(MID_STATION_Y - 1, i, "%s", "-");
@@ -90,8 +91,9 @@ void printAll(){
             mvprintw(BOT_STATION_Y + 1, i, "%s", "-");
         }
 
-        mvprintw(TOP_STATION_Y - 1, DIRECTOR_X, "%s", "-");
-        mvprintw(BOT_STATION_Y + 1, DIRECTOR_X, "%s", "-");
+        mvprintw(TOP_STATION_Y - 1, DISTRIBUTOR_X, "%s", "-");
+        mvprintw(BOT_STATION_Y + 1, DISTRIBUTOR_X, "%s", "-");
+        attroff(COLOR_PAIR(10));
         /*
         Printing stations
         */
@@ -126,13 +128,13 @@ void printAll(){
         }
         attron(COLOR_PAIR(color));
         if (direction == 0){
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_UARROW);
+            mvaddch(DISTRIBUTOR_Y, DISTRIBUTOR_X, ACS_UARROW);
         }
         else if (direction == 1){
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_RARROW);
+            mvaddch(DISTRIBUTOR_Y, DISTRIBUTOR_X, ACS_RARROW);
         }   
         else{
-            mvaddch(DIRECTOR_Y, DIRECTOR_X, ACS_DARROW);
+            mvaddch(DISTRIBUTOR_Y, DISTRIBUTOR_X, ACS_DARROW);
         }
         attroff(COLOR_PAIR(color));
         refresh();
@@ -172,7 +174,7 @@ void managerThread(volatile bool& shouldClose){
     srand(time(nullptr));
     int delay = 0;
 
-    int* cords = new int[5]{DIRECTOR_X, DIRECTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
+    int* cords = new int[5]{DISTRIBUTOR_X, DISTRIBUTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
 
     while(!shouldClose){
         delay = rand() % 2 + 1; 
@@ -204,7 +206,7 @@ int main(int argc, char** argv) {
 
     start_color();
     /*
-    Distributor colors
+    Distributor and stations colors
     */
     init_pair(1, COLOR_BLACK, COLOR_GREEN); 
     init_pair(2, COLOR_BLACK, COLOR_RED);
@@ -218,6 +220,10 @@ int main(int argc, char** argv) {
     init_pair(7, COLOR_RED, COLOR_BLACK);
     init_pair(8, COLOR_YELLOW, COLOR_BLACK);
     init_pair(9, COLOR_WHITE, COLOR_BLACK);
+    /*
+    Corridor color
+    */
+    init_pair(10, 8, 8);
 
     volatile bool shouldClose = false;
     thread dir_th(director, ref(direction), ref(shouldClose));

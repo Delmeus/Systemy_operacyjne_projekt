@@ -10,12 +10,11 @@
 using namespace std;
 
 extern bool distributorTaken;
-extern int DIRECTOR_X;
 
 class Client {
 private:
-    // 0 - director x
-    // 1 - director y
+    // 0 - distributor x
+    // 1 - distributor y
     // 2 - all stations x
     // 3 - top station y
     // 4 - bot station y
