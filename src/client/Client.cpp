@@ -103,7 +103,27 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             nextPosition.first += 1;
         }
 
-        if(nextDirection != -1){
+        if(nextDirection != direction){
+            unique_lock<std::mutex> lock(mutex);
+            
+            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
+
+            if(shouldClose) break;
+            
+            distributorTaken = true;
+            position.first = DIRECTOR_X;
+            
+            lock.unlock();
+            this_thread::sleep_for(chrono::seconds(1));
+            lock.lock();
+
+            position = nextPosition;
+            direction = nextDirection;
+            distributorTaken = false;
+
+            condition.notify_all(); 
+        }
+        else if(nextDirection != -1){
             unique_lock<std::mutex> lock(mutex);
             
             condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });

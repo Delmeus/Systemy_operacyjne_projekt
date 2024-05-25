@@ -9,6 +9,9 @@
 #include <condition_variable>
 using namespace std;
 
+extern bool distributorTaken;
+extern int DIRECTOR_X;
+
 class Client {
 private:
     // 0 - director x
@@ -24,6 +27,9 @@ private:
 
     bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& occupancy){
         if(direction == -1){
+            if(nextPosition.first = DIRECTOR_X && distributorTaken){
+                return false;
+            }
             return true;
         }
 
@@ -61,6 +67,10 @@ public:
 
     void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
     void close(condition_variable& condition);
+
+    int getSpeed(){
+        return speed;
+    }
 
 };
 
