@@ -20,3 +20,5 @@ Clients cannot pass each other on their way from distributor to service station.
 
 ### Stage 3
 
+Distributor now requires 1 second for a client to pass. Upon reaching the distributor client blocks it for other clients. After 1 second client leaves into direction that was pointed by the distributor, at the moment in which they entered it.
+
