@@ -27,9 +27,6 @@ private:
 
     bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& occupancy){
         if(direction == -1){
-            if(nextPosition.first = DIRECTOR_X && distributorTaken){
-                return false;
-            }
             return true;
         }
 

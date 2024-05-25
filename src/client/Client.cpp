@@ -25,7 +25,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             nextPosition.first = stationCoordinates[2];
 
             unique_lock<std::mutex> lock(mutex);
-            condition.wait(lock,  [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; }); 
+            condition.wait(lock,  [&]() { return !occupancy[direction] || shouldClose; }); 
 
             if(shouldClose) break;
 
@@ -80,9 +80,24 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             }
         }
         /*
+        Client sent forwards or hasn't received direction yet
+        */
+        else{
+            nextPosition.first += 1;
+        }
+        /*
         Client reached the distributor
         */
-        else if (position.first + 1 >= stationCoordinates[0] && direction == -1){
+        if(nextPosition.first == stationCoordinates[0] && nextPosition.second == stationCoordinates[1]){
+            unique_lock<std::mutex> lock(mutex);
+            
+            condition.wait(lock, [&]() { return !distributorTaken || shouldClose; });
+
+            if(shouldClose) break;
+            
+            distributorTaken = true;
+            position.first = DIRECTOR_X;
+            
             if (distributorDirection == 0){
                 nextPosition = make_pair(stationCoordinates[0], stationCoordinates[1] - 1);
                 nextDirection = 0;
@@ -95,24 +110,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
                 nextPosition = make_pair(stationCoordinates[0] + 1, stationCoordinates[1]);
                 nextDirection = 1;
             }
-        }
-        /*
-        Client sent forwards or hasn't reached the distributor yet
-        */
-        else{
-            nextPosition.first += 1;
-        }
 
-        if(nextDirection != direction){
-            unique_lock<std::mutex> lock(mutex);
-            
-            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
-
-            if(shouldClose) break;
-            
-            distributorTaken = true;
-            position.first = DIRECTOR_X;
-            
             lock.unlock();
             this_thread::sleep_for(chrono::seconds(1));
             lock.lock();
