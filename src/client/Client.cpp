@@ -4,17 +4,17 @@
 #include <iostream>
 #include <ncurses.h>
 
-Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition){
+Client::Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& stationsOccupied, condition_variable& condition){
     name = n;
     position = make_pair(0, 10);
     this->speed = speed;
     shouldClose = false;
     copy(coordinates, coordinates + 5, stationCoordinates);
-    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex), ref(occupancy), ref(condition));
+    clientThread = thread(&Client::move, this, ref(distributorDirection), ref(clients), ref(mutex), ref(stationsOccupied), ref(condition));
 
 }
 
-void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition){
+void Client::move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& stationsOccupied, condition_variable& condition){
     int nextDirection = direction;
     while (!shouldClose){
         pair<int, int> nextPosition = position;
@@ -25,12 +25,12 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             nextPosition.first = stationCoordinates[2];
 
             unique_lock<std::mutex> lock(mutex);
-            condition.wait(lock,  [&]() { return !occupancy[direction] || shouldClose; }); 
+            condition.wait(lock,  [&]() { return !stationsOccupied[direction] || shouldClose; }); 
 
             if(shouldClose) break;
 
             position = nextPosition;
-            occupancy[direction] = true;
+            stationsOccupied[direction] = true;
             lock.unlock();
             condition.notify_all();
 
@@ -39,7 +39,7 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
             condition.notify_all();
             lock.lock();
             position.first = stationCoordinates[2] + 1;
-            occupancy[direction] = false;
+            stationsOccupied[direction] = false;
             direction = -2;
             lock.unlock();
             condition.notify_all(); 
@@ -68,11 +68,11 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
         if(nextPosition.first == stationCoordinates[0] && nextPosition.second == stationCoordinates[1]){
             unique_lock<std::mutex> lock(mutex);
             
-            condition.wait(lock, [&]() { return !distributorTaken || shouldClose; });
+            condition.wait(lock, [&]() { return !distributorOccupied || shouldClose; });
 
             if(shouldClose) break;
             
-            distributorTaken = true;
+            distributorOccupied = true;
             position.first = stationCoordinates[0];
             
             if (distributorDirection == 0){
@@ -94,14 +94,14 @@ void Client::move(int& distributorDirection, const vector<Client*>& clients, mut
 
             position = nextPosition;
             direction = nextDirection;
-            distributorTaken = false;
+            distributorOccupied = false;
 
             condition.notify_all(); 
         }
         else if(nextDirection != -1){
             unique_lock<std::mutex> lock(mutex);
             
-            condition.wait(lock, [&]() { return canMove(nextPosition, clients, occupancy) || shouldClose; });
+            condition.wait(lock, [&]() { return canMove(nextPosition, clients, stationsOccupied) || shouldClose; });
 
             if(shouldClose) break;
             

@@ -26,9 +26,9 @@ int MAX_SPEED = 7;
 mutex clientMutex;
 vector<Client*> clients;
 
-vector<bool> occupancy(3, false);
+vector<bool> stationsOccupied(3, false);
 condition_variable condition;
-bool distributorTaken = false;
+bool distributorOccupied = false;
 
 void director(int& direction, volatile bool& shouldClose){
     while (!shouldClose){
@@ -97,21 +97,21 @@ void printAll(){
         /*
         Printing stations
         */
-        if(occupancy[0]) color = 2;
+        if(stationsOccupied[0]) color = 2;
         else color = 1;
         attron(COLOR_PAIR(color));
         mvaddch(TOP_STATION_Y - 1, STATIONS_X, ACS_DARROW);
         mvaddch(TOP_STATION_Y + 1, STATIONS_X, ACS_UARROW);
         attroff(COLOR_PAIR(color));
 
-        if(occupancy[1]) color = 2;
+        if(stationsOccupied[1]) color = 2;
         else color = 1;
         attron(COLOR_PAIR(color));
         mvaddch(MID_STATION_Y - 1, STATIONS_X, ACS_DARROW);
         mvaddch(MID_STATION_Y + 1, STATIONS_X, ACS_UARROW);
         attroff(COLOR_PAIR(color));
 
-        if(occupancy[2]) color = 2;
+        if(stationsOccupied[2]) color = 2;
         else color = 1;
         attron(COLOR_PAIR(color));
         mvaddch(BOT_STATION_Y - 1, STATIONS_X, ACS_DARROW);
@@ -120,7 +120,7 @@ void printAll(){
         /*
         Printing distributor
         */
-        if(distributorTaken){
+        if(distributorOccupied){
             color = 2;
         }
         else{
@@ -182,7 +182,7 @@ void managerThread(volatile bool& shouldClose){
         int speed = rand() % MAX_SPEED + 1;
         string s(1, name);
         
-        Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, occupancy, condition);
+        Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, stationsOccupied, condition);
 
         unique_lock<mutex> lock(clientMutex);
         clients.push_back(newClient);

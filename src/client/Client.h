@@ -9,7 +9,7 @@
 #include <condition_variable>
 using namespace std;
 
-extern bool distributorTaken;
+extern bool distributorOccupied;
 
 class Client {
 private:
@@ -24,7 +24,7 @@ private:
     int direction = -1;
     thread clientThread;
 
-    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& occupancy){
+    bool canMove(pair<int, int> nextPosition, const vector<Client*>& clients, const vector<bool>& stationsOccupied){
         if(direction == -1){
             return true;
         }
@@ -34,7 +34,7 @@ private:
                 continue;
             }
             if((*it)->position == nextPosition){
-                if(nextPosition.first == stationCoordinates[2] - 1 && occupancy[direction] == true){
+                if(nextPosition.first == stationCoordinates[2] - 1 && stationsOccupied[direction] == true){
                     return true;
                 }
                 return false;
@@ -56,12 +56,12 @@ public:
         return false;
     }
 
-    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
+    Client(string n, int speed, int& distributorDirection, const int coordinates[5], const vector<Client*>& clients, mutex& mutex, vector<bool>& stationsOccupied, condition_variable& condition);
     
     string name;
     pair<int, int> position;
 
-    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& occupancy, condition_variable& condition);
+    void move(int& distributorDirection, const vector<Client*>& clients, mutex& mutex, vector<bool>& stationsOccupied, condition_variable& condition);
     void close(condition_variable& condition);
 
     int getSpeed(){
