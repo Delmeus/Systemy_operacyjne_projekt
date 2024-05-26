@@ -10,28 +10,29 @@
 #include <algorithm>
 using namespace std;
 
-int DISTRIBUTOR_Y = 10;
-int DISTRIBUTOR_X = 40;
+const int DISTRIBUTOR_Y = 10;
+const int DISTRIBUTOR_X = 40;
 
-int STATIONS_X = 70;
-int TOP_STATION_Y = 5;
-int MID_STATION_Y = 10;
-int BOT_STATION_Y = 15;
+const int STATIONS_X = 70;
+const int TOP_STATION_Y = 5;
+const int MID_STATION_Y = 10;
+const int BOT_STATION_Y = 15;
 
-int direction = 0; // 0 - up, 1 - right, 2 - down
+const int MAX_SPEED = 7;
 
-int MAX_SPEED = 7;
-
-mutex clientMutex;
 vector<Client*> clients;
 
-vector<bool> stationsOccupied(3, false);
-condition_variable condition;
+int distributorDirection = 0; // 0 - up, 1 - right, 2 - down
 bool distributorOccupied = false;
 
-void director(int& direction, volatile bool& shouldClose){
+mutex clientMutex;
+condition_variable condition;
+
+vector<bool> stationsOccupied(3, false);
+
+void director(int& distributorDirection, volatile bool& shouldClose){
     while (!shouldClose){
-        direction = (direction + 1) % 3;
+        distributorDirection = (distributorDirection + 1) % 3;
         this_thread::sleep_for(chrono::seconds(4));
     }
 }
@@ -126,10 +127,10 @@ void printAll(){
             color = 1;
         }
         attron(COLOR_PAIR(color));
-        if (direction == 0){
+        if (distributorDirection == 0){
             mvaddch(DISTRIBUTOR_Y, DISTRIBUTOR_X, ACS_UARROW);
         }
-        else if (direction == 1){
+        else if (distributorDirection == 1){
             mvaddch(DISTRIBUTOR_Y, DISTRIBUTOR_X, ACS_RARROW);
         }   
         else{
@@ -158,7 +159,7 @@ void janitorThread(volatile bool& shouldClose){
         if(shouldClose) break;
 
         for (auto client : toDelete) {
-            client->close(condition);
+            client->close();
             delete client;
         }
 
@@ -169,11 +170,9 @@ void janitorThread(volatile bool& shouldClose){
     }
 }
 
-void managerThread(volatile bool& shouldClose){
+void generatorThread(volatile bool& shouldClose){
     srand(time(nullptr));
     int delay = 0;
-
-    int* cords = new int[5]{DISTRIBUTOR_X, DISTRIBUTOR_Y, STATIONS_X, TOP_STATION_Y, BOT_STATION_Y};
 
     while(!shouldClose){
         delay = rand() % 2 + 1; 
@@ -181,7 +180,7 @@ void managerThread(volatile bool& shouldClose){
         int speed = rand() % MAX_SPEED + 1;
         string s(1, name);
         
-        Client* newClient = new Client(s, speed, ref(direction), cords, clients, clientMutex, stationsOccupied, condition);
+        Client* newClient = new Client(s, speed, clients);
 
         unique_lock<mutex> lock(clientMutex);
         clients.push_back(newClient);
@@ -189,8 +188,6 @@ void managerThread(volatile bool& shouldClose){
         this_thread::sleep_for(chrono::seconds(delay));
 
     }
-
-    delete[] cords;
 }
 
 int main(int argc, char** argv) {
@@ -225,8 +222,8 @@ int main(int argc, char** argv) {
     init_pair(10, 8, 8);
 
     volatile bool shouldClose = false;
-    thread dir_th(director, ref(direction), ref(shouldClose));
-    thread manager(managerThread, ref(shouldClose));
+    thread dir_th(director, ref(distributorDirection), ref(shouldClose));
+    thread generator(generatorThread, ref(shouldClose));
     thread janitor(janitorThread, ref(shouldClose));
 
     while (!shouldClose){
@@ -243,13 +240,13 @@ int main(int argc, char** argv) {
     cout << "Stopping threads" << endl;
     dir_th.join();
     cout << "Distributor thread finished" << endl;
-    manager.join();
-    cout << "Manager thread finished" << endl;
+    generator.join();
+    cout << "Generator thread finished" << endl;
     janitor.join();
     cout << "Janitor thread finished" << endl;
 
     for (auto it = clients.begin(); it != clients.end(); ++it){
-        (*it)->close(condition);
+        (*it)->close();
         delete *it;
     }
 
