@@ -86,9 +86,7 @@ void Client::move(const vector<Client*>& clients){
                 nextDirection = 1;
             }
 
-            lock.unlock();
             this_thread::sleep_for(chrono::seconds(1));
-            lock.lock();
 
             position = nextPosition;
             direction = nextDirection;
